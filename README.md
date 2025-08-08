@@ -53,7 +53,7 @@ For Software:
 # Screenshots (Add at least 3)<img width="1918" height="943" alt="Image" src="https://github.com/user-attachments/assets/5bb15ad2-a1a1-4436-895a-4718f903ea7e" />
 # <img width="1918" height="937" alt="Image" src="https://github.com/user-attachments/assets/ce14f44f-30c7-4d41-9ace-0a22d4c406aa" />
 # <img width="1918" height="927" alt="Image" src="https://github.com/user-attachments/assets/8846dbc1-bbf0-4584-ba8b-7d3b1c80a760" />
-# 
+# <img width="1918" height="935" alt="Image" src="https://github.com/user-attachments/assets/279db17c-a187-43a6-94ab-b32a0ea04266" />
 
 # Diagrams
 ![Workflow](Add your workflow/architecture diagram here)
