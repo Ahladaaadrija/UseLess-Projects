@@ -55,36 +55,10 @@ For Software:
 # <img width="1918" height="927" alt="Image" src="https://github.com/user-attachments/assets/8846dbc1-bbf0-4584-ba8b-7d3b1c80a760" />
 # <img width="1918" height="935" alt="Image" src="https://github.com/user-attachments/assets/279db17c-a187-43a6-94ab-b32a0ea04266" />
 
-# Diagrams
-![Workflow](Add your workflow/architecture diagram here)
-*Add caption explaining your workflow*
-
-For Hardware:
-
-# Schematic & Circuit
-![Circuit](Add your circuit diagram here)
-*Add caption explaining connections*
-
-![Schematic](Add your schematic diagram here)
-*Add caption explaining the schematic*
-
-# Build Photos
-![Components](Add photo of your components here)
-*List out all components shown*
-
-![Build](Add photos of build process here)
-*Explain the build steps*
-
-![Final](Add photo of final product here)
-*Explain the final build*
-
 ### Project Demo
 # Video
 [Add your demo video link here]
 *Explain what the video demonstrates*
-
-# Additional Demos
-[Add any extra demo materials/links]
 
 ## Team Contributions
 - [Name 1]: [Specific contributions]
