@@ -57,13 +57,12 @@ For Software:
 
 ### Project Demo
 # Video
-[Add your demo video link here]
-*Explain what the video demonstrates*
+# (https://drive.google.com/file/d/1lJ8zUxfgXBdoeH3AeHr_N_FsAyuSS05f/view?usp=drive_link)
 
 ## Team Contributions
-- [Name 1]: [Specific contributions]
-- [Name 2]: [Specific contributions]
-- [Name 3]: [Specific contributions]
+- Ahlada A Adrija: FrontEnd Development
+- Govind J S: Backend Integration
+
 
 ---
 Made with ❤️ at TinkerHub Useless Projects 
