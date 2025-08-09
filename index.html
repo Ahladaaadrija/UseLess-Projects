@@ -1,0 +1,863 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Leaf Ledger - Adrigo</title>
+    <!-- Use Tailwind CSS for modern, responsive styling -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+        @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap');
+        body {
+            font-family: 'Inter', sans-serif;
+        }
+        /* Custom styling for the file upload area, ensuring good contrast */
+        .file-upload-label {
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 10px rgba(100, 100, 255, 0.2);
+            border: 2px solid transparent;
+            background-image: linear-gradient(#1f2937, #1f2937), linear-gradient(to right, #4ade80, #60a5fa);
+            background-origin: border-box;
+            background-clip: content-box, border-box;
+        }
+        .file-upload-label:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(100, 100, 255, 0.4);
+            border: 2px solid transparent;
+            background-image: linear-gradient(#1f2937, #1f2937), linear-gradient(to right, #60a5fa, #8b5cf6);
+        }
+        .hidden {
+            display: none;
+        }
+        .loader {
+            border: 4px solid #374151; /* gray-700 */
+            border-top: 4px solid #10b981; /* emerald-500 */
+            border-radius: 50%;
+            width: 4rem;
+            height: 4rem;
+            animation: spin 1.5s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        /* Text animation for loading */
+        .loading-text::after {
+            content: '';
+            animation: dot-animation 1.5s infinite;
+        }
+        @keyframes dot-animation {
+            0%, 20% { content: ''; }
+            40% { content: '.'; }
+            60% { content: '..'; }
+            80%, 100% { content: '...'; }
+        }
+        /* Custom gradient for buttons with better text contrast */
+        .gradient-button {
+            background-image: linear-gradient(to right, #10b981, #60a5fa);
+            box-shadow: 0 4px 10px rgba(16, 185, 129, 0.3);
+            transition: all 0.3s ease;
+        }
+        .gradient-button:hover {
+            background-image: linear-gradient(to right, #60a5fa, #8b5cf6);
+            box-shadow: 0 8px 20px rgba(96, 165, 250, 0.4);
+            transform: scale(1.05);
+        }
+        .gradient-button:active {
+            transform: scale(0.95);
+            box-shadow: 0 2px 5px rgba(0, 0, 0, 0.2);
+        }
+        .gradient-bg {
+            background-image: linear-gradient(to bottom right, #2d3748, #1a202c);
+        }
+        .toast-notification {
+            position: fixed;
+            bottom: 2rem;
+            left: 50%;
+            transform: translateX(-50%);
+            background-color: #10b981; /* green-500 */
+            color: #fff;
+            padding: 1rem 2rem;
+            border-radius: 9999px;
+            font-weight: 600;
+            z-index: 1000;
+            transition: all 0.5s cubic-bezier(0.68, -0.55, 0.27, 1.55);
+            opacity: 0;
+            transform: translate(-50%, 20px);
+        }
+        .toast-notification.show {
+            opacity: 1;
+            transform: translate(-50%, 0);
+        }
+
+        /* --- Scan Animation Styles --- */
+        .scan-container {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0, 0, 0, 0.95);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 50;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.5s ease;
+        }
+        .scan-container.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+        .scan-image-wrapper {
+            position: relative;
+            max-width: 90vw;
+            max-height: 90vh;
+            display: inline-block;
+            box-shadow: 0 0 20px rgba(0, 255, 0, 0.5);
+            border-radius: 1rem;
+            overflow: hidden;
+        }
+        .scan-animation {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: linear-gradient(rgba(0, 255, 0, 0.2), transparent);
+            animation: scan-line 2.5s infinite alternate;
+        }
+        @keyframes scan-line {
+            0% { transform: translateY(-100%); }
+            100% { transform: translateY(100%); }
+        }
+        .timeline-item {
+            position: relative;
+            padding-left: 2rem;
+            margin-bottom: 2rem;
+            border-left: 2px solid #4ade80;
+        }
+        .timeline-item::before {
+            content: '';
+            position: absolute;
+            left: -0.5rem;
+            top: 0;
+            width: 1rem;
+            height: 1rem;
+            background-color: #4ade80;
+            border-radius: 50%;
+            border: 2px solid #1f2937;
+        }
+        .timeline-title {
+            font-weight: 700;
+            color: #4ade80;
+        }
+        .timeline-description {
+            color: #d1d5db;
+        }
+    </style>
+</head>
+<body class="bg-gray-950 text-gray-200 flex items-center justify-center min-h-screen p-4">
+    <div class="max-w-4xl w-full bg-gray-900 rounded-xl shadow-2xl overflow-hidden p-8 sm:p-12 border-2 border-gray-800">
+        
+        <!-- Window 1: Starting Window -->
+        <div id="start-window" class="text-center">
+            <header class="mb-10">
+                <h1 class="text-6xl font-bold text-white tracking-wide">
+                    Leaf Ledger
+                </h1>
+                <p class="mt-3 text-2xl text-gray-300 max-w-2xl mx-auto">
+                    Adrigo
+                </p>
+            </header>
+            <p class="text-xl text-gray-400 max-w-2xl mx-auto mb-10">
+                Upload an image of a tree, and our system will analyze and classify its leaves to determine the "mood" of the plant, among other useless facts.
+            </p>
+            <button id="startButton" class="gradient-button text-white font-semibold py-4 px-12 rounded-full transform transition-all duration-300">
+                Get Started
+            </button>
+        </div>
+
+        <!-- Window 2: Photo Upload & Analysis -->
+        <div id="upload-window" class="hidden">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">
+                Upload Your Image
+            </h2>
+            <div class="grid md:grid-cols-2 gap-8">
+                <!-- Left Panel: Upload Area -->
+                <div class="flex flex-col items-center justify-center p-6 bg-gray-800 border-2 border-dashed border-gray-700 rounded-lg h-96">
+                    <input type="file" id="imageInput" accept="image/*" class="hidden">
+                    <label for="imageInput" class="file-upload-label cursor-pointer flex flex-col items-center justify-center text-green-400 bg-gray-900 p-6 rounded-full transform duration-300">
+                        <svg class="w-16 h-16" fill="none" stroke="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"></path>
+                        </svg>
+                        <span class="mt-4 text-lg font-semibold">Click to upload a photo</span>
+                        <span class="text-sm text-gray-400 mt-1">PNG, JPG, JPEG up to 10MB</span>
+                    </label>
+                </div>
+                
+                <!-- Right Panel: Image Preview & Results -->
+                <div class="flex flex-col">
+                    <div id="imageContainer" class="relative bg-gray-800 border-2 border-gray-700 rounded-lg h-64 overflow-hidden flex items-center justify-center">
+                        <img id="imagePreview" src="https://placehold.co/400x400/1F2937/4B5563?text=Image+Preview" alt="Image preview" class="max-w-full max-h-full object-contain">
+                    </div>
+                    
+                    <!-- New "Scan Image" button -->
+                    <button id="scanButton" class="mt-4 gradient-button text-white font-semibold py-3 px-8 rounded-full transform transition-all duration-300 hidden">
+                        Scan Image
+                    </button>
+
+                    <div id="analysisResults" class="mt-8 bg-gray-800 p-6 rounded-lg shadow-inner hidden animate-fade-in">
+                        <h3 class="text-xl font-bold text-green-400 mb-2">Analysis Results</h3>
+                        <p class="text-sm text-gray-400 font-semibold">
+                            Total Leaves: <span id="totalLeaves" class="font-extrabold text-2xl text-white">--</span>
+                        </p>
+                        <div class="grid grid-cols-3 gap-4 mt-4">
+                            <div class="text-center">
+                                <span id="greenCount" class="font-extrabold text-2xl text-green-400">--</span>
+                                <p class="text-sm text-gray-300">Green</p>
+                            </div>
+                            <div class="text-center">
+                                <span id="yellowCount" class="font-extrabold text-2xl text-yellow-400">--</span>
+                                <p class="text-sm text-gray-300">Yellow</p>
+                            </div>
+                            <div class="text-center">
+                                <span id="brownCount" class="font-extrabold text-2xl text-amber-600">--</span>
+                                <p class="text-sm text-gray-300">Brown</p>
+                            </div>
+                        </div>
+                        
+                        <!-- New Badges Section -->
+                        <div id="badgeContainer" class="mt-6 hidden">
+                            <h4 class="text-lg font-semibold text-white mb-2">Achievements Unlocked!</h4>
+                            <div id="badges" class="flex flex-wrap gap-2 justify-center">
+                                <!-- Badges will be added here dynamically -->
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Loading Indicator -->
+                    <div id="loadingIndicator" class="mt-8 text-center hidden">
+                        <div class="loader ease-linear rounded-full h-12 w-12 mx-auto mb-4"></div>
+                        <p class="text-gray-400 loading-text">Analyzing your image</p>
+                    </div>
+
+                    <!-- Error Message Box -->
+                    <div id="errorBox" class="mt-8 bg-red-900 border-l-4 border-red-500 text-red-300 p-4 rounded-md hidden" role="alert">
+                        <p class="font-bold">Error!</p>
+                        <p id="errorMessage"></p>
+                    </div>
+                </div>
+            </div>
+            <div class="flex justify-end mt-8">
+                <button id="nextToMoodButton" class="gradient-button text-white font-semibold py-3 px-8 rounded-full transform transition-all duration-300 hidden">
+                    Next
+                </button>
+            </div>
+        </div>
+
+        <!-- Window 3: Leaf Mood Generator -->
+        <div id="mood-window" class="hidden">
+            <h2 class="text-3xl font-bold text-white text-center mb-8">
+                Analyzing the Leaf's Vibe...
+            </h2>
+            <div id="moodLoading" class="loader rounded-full h-24 w-24 mx-auto mb-8"></div>
+            <div id="moodResult" class="hidden text-center animate-fade-in">
+                <p class="text-3xl sm:text-4xl font-semibold text-gray-300 mb-4">
+                    Based on the analysis, the leaves are feeling...
+                </p>
+                <p id="leafMood" class="text-5xl sm:text-7xl font-extrabold text-green-400">
+                    Happy! 😊
+                </p>
+            </div>
+            <div class="flex justify-between mt-12">
+                <button id="backToUploadButton" class="bg-gray-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300">
+                    Back
+                </button>
+                <button id="nextToPersonalityButton" class="gradient-button text-white font-semibold py-3 px-8 rounded-full transform transition-all duration-300">
+                    Get Personality Profile
+                </button>
+            </div>
+        </div>
+        
+        <!-- Window 4: Useless Personality Profile Generator -->
+        <div id="personality-window" class="hidden text-center">
+            <h2 class="text-3xl font-bold text-white mb-8">
+                Generating Plant Personality Profile...
+            </h2>
+            <div id="personalityLoading" class="loader rounded-full h-24 w-24 mx-auto mb-8"></div>
+            <div id="personalityContent" class="hidden text-left bg-gray-800 p-6 rounded-lg shadow-inner animate-fade-in">
+                <p id="personalityText" class="text-lg text-gray-200 leading-relaxed">
+                    <!-- The generated personality profile will be placed here -->
+                </p>
+                <div class="flex justify-center mt-6">
+                    <button id="nextToHistoryButton" class="gradient-button text-white font-semibold py-3 px-8 rounded-full transform transition-all duration-300">
+                        View Leaf History
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-center mt-12">
+                <button id="backToMoodButton" class="bg-gray-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300">
+                    Back
+                </button>
+            </div>
+        </div>
+
+        <!-- Window 5: Leaf History Timeline -->
+        <div id="history-window" class="hidden text-center">
+            <h2 class="text-3xl font-bold text-white mb-8">
+                Plant History Timeline
+            </h2>
+            <div id="historyLoading" class="loader rounded-full h-24 w-24 mx-auto mb-8"></div>
+            <div id="historyContent" class="hidden text-left bg-gray-800 p-6 rounded-lg shadow-inner animate-fade-in">
+                <h3 class="text-xl font-bold text-white mb-4">Historical Eras of Your Plant</h3>
+                <div id="timeline" class="flex flex-col gap-8">
+                    <!-- The generated timeline will be placed here -->
+                </div>
+            </div>
+            <div class="flex justify-between mt-12">
+                <button id="backToPersonalityButton2" class="bg-gray-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300">
+                    Back
+                </button>
+                <button id="nextToFortuneButton" class="gradient-button text-white font-semibold py-3 px-8 rounded-full transform transition-all duration-300">
+                    Get Your Fortune
+                </button>
+            </div>
+        </div>
+        
+        <!-- Window 6: Fortune Teller -->
+        <div id="fortune-window" class="hidden text-center">
+            <h2 class="text-3xl font-bold text-white mb-8">
+                Consulting the Leaves...
+            </h2>
+            <div id="fortuneLoading" class="loader rounded-full h-24 w-24 mx-auto mb-8"></div>
+            <div id="fortuneContent" class="hidden text-left bg-gray-800 p-6 rounded-lg shadow-inner animate-fade-in">
+                <p class="text-xl font-semibold text-green-400 mb-4">Your fortune is:</p>
+                <p id="fortuneText" class="text-2xl font-bold text-green-300 leading-relaxed">
+                    <!-- The generated fortune will be placed here -->
+                </p>
+                <div class="flex justify-between mt-6">
+                    <button id="copyFortuneButton" class="bg-gray-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300">
+                        Copy to Clipboard
+                    </button>
+                    <button id="nextToLeaderboardButton" class="gradient-button text-white font-semibold py-3 px-8 rounded-full transform transition-all duration-300">
+                        View Leaderboard
+                    </button>
+                </div>
+            </div>
+            <div class="flex justify-center mt-12">
+                <button id="backToHistoryButton" class="bg-gray-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300">
+                    Back
+                </button>
+            </div>
+        </div>
+        
+        <!-- Window 7: Leaderboard -->
+        <div id="leaderboard-window" class="hidden text-center">
+            <h2 class="text-3xl font-bold text-white mb-8">
+                Leaderboard
+            </h2>
+            <div id="leaderboardContent" class="bg-gray-800 p-6 rounded-lg shadow-inner animate-fade-in">
+                <p class="text-lg text-gray-300 mb-4">Top Leaf Counters</p>
+                <div id="leaderboardList" class="flex flex-col gap-2 text-left">
+                    <!-- Leaderboard items will be generated here -->
+                </div>
+                <div id="userRank" class="mt-6 text-xl font-bold text-white">
+                    <!-- User's rank will be displayed here -->
+                </div>
+            </div>
+            <div class="flex justify-between mt-12">
+                <button id="backToFortuneButton2" class="bg-gray-700 text-white font-semibold py-3 px-8 rounded-full shadow-lg hover:bg-gray-600 transition-all duration-300">
+                    Back
+                </button>
+                <button id="nextToThankYouButton" class="gradient-button text-white font-semibold py-3 px-8 rounded-full transform transition-all duration-300">
+                    Continue
+                </button>
+            </div>
+        </div>
+
+        <!-- Window 8: Final Thank You Message -->
+        <div id="thank-you-window" class="hidden text-center">
+            <h2 class="text-4xl font-bold text-white mb-8">
+                Congratulations!
+            </h2>
+            <p class="text-2xl text-gray-400 mb-4">
+                You have successfully completed a very useless task.
+            </p>
+            <p class="text-5xl font-extrabold text-green-400 mb-12">
+                Thank you for wasting your time.
+            </p>
+            <button id="startOverButton" class="gradient-button text-white font-semibold py-4 px-12 rounded-full transform transition-all duration-300">
+                Start Over
+            </button>
+        </div>
+        
+    </div>
+    
+    <!-- Toast Notification Element -->
+    <div id="toast" class="toast-notification"></div>
+
+    <!-- Scan Animation Modal -->
+    <div id="scan-modal" class="scan-container">
+        <div class="scan-image-wrapper">
+            <img id="scanImage" src="" alt="Image to be scanned" class="max-w-full max-h-full rounded-xl">
+            <div class="scan-animation"></div>
+        </div>
+    </div>
+
+    <script>
+        // Global variables to store analysis data
+        let leafData = {};
+
+        // Function to show a specific window and hide others
+        function showPage(pageId) {
+            const pages = ['start-window', 'upload-window', 'mood-window', 'personality-window', 'history-window', 'fortune-window', 'leaderboard-window', 'thank-you-window'];
+            pages.forEach(id => {
+                const page = document.getElementById(id);
+                if (id === pageId) {
+                    page.classList.remove('hidden');
+                } else {
+                    page.classList.add('hidden');
+                }
+            });
+        }
+        
+        // Function to display a toast notification
+        function showToast(message) {
+            const toast = document.getElementById('toast');
+            toast.textContent = message;
+            toast.classList.add('show');
+            setTimeout(() => {
+                toast.classList.remove('show');
+            }, 3000);
+        }
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // Get all buttons and elements by their IDs
+            const startButton = document.getElementById('startButton');
+            const imageInput = document.getElementById('imageInput');
+            const imagePreview = document.getElementById('imagePreview');
+            const loadingIndicator = document.getElementById('loadingIndicator');
+            const errorBox = document.getElementById('errorBox');
+            const errorMessage = document.getElementById('errorMessage');
+            const analysisResults = document.getElementById('analysisResults');
+            const totalLeavesSpan = document.getElementById('totalLeaves');
+            const greenCountSpan = document.getElementById('greenCount');
+            const yellowCountSpan = document.getElementById('yellowCount');
+            const brownCountSpan = document.getElementById('brownCount');
+            const badgeContainer = document.getElementById('badgeContainer');
+            const badgesDiv = document.getElementById('badges');
+            const nextToMoodButton = document.getElementById('nextToMoodButton');
+            const moodLoading = document.getElementById('moodLoading');
+            const moodResult = document.getElementById('moodResult');
+            const leafMoodSpan = document.getElementById('leafMood');
+            const backToUploadButton = document.getElementById('backToUploadButton');
+            const nextToPersonalityButton = document.getElementById('nextToPersonalityButton');
+            const personalityLoading = document.getElementById('personalityLoading');
+            const personalityContent = document.getElementById('personalityContent');
+            const personalityText = document.getElementById('personalityText');
+            const nextToHistoryButton = document.getElementById('nextToHistoryButton');
+            const backToMoodButton = document.getElementById('backToMoodButton');
+            const historyLoading = document.getElementById('historyLoading');
+            const historyContent = document.getElementById('historyContent');
+            const timelineDiv = document.getElementById('timeline');
+            const backToPersonalityButton2 = document.getElementById('backToPersonalityButton2');
+            const nextToFortuneButton = document.getElementById('nextToFortuneButton');
+            const fortuneLoading = document.getElementById('fortuneLoading');
+            const fortuneContent = document.getElementById('fortuneContent');
+            const fortuneText = document.getElementById('fortuneText');
+            const copyFortuneButton = document.getElementById('copyFortuneButton');
+            const backToHistoryButton = document.getElementById('backToHistoryButton');
+            const nextToLeaderboardButton = document.getElementById('nextToLeaderboardButton');
+            const backToFortuneButton2 = document.getElementById('backToFortuneButton2');
+            const nextToThankYouButton = document.getElementById('nextToThankYouButton');
+            const startOverButton = document.getElementById('startOverButton');
+            const leaderboardList = document.getElementById('leaderboardList');
+            const userRank = document.getElementById('userRank');
+            const scanButton = document.getElementById('scanButton');
+            const scanModal = document.getElementById('scan-modal');
+            const scanImage = document.getElementById('scanImage');
+
+
+            // Set up button click event listeners
+            startButton.addEventListener('click', () => {
+                showPage('upload-window');
+            });
+
+            backToUploadButton.addEventListener('click', () => {
+                showPage('upload-window');
+            });
+            
+            backToMoodButton.addEventListener('click', () => {
+                showPage('mood-window');
+            });
+
+            backToPersonalityButton2.addEventListener('click', () => {
+                showPage('personality-window');
+            });
+
+            backToHistoryButton.addEventListener('click', () => {
+                showPage('history-window');
+            });
+            
+            backToFortuneButton2.addEventListener('click', () => {
+                showPage('fortune-window');
+            });
+
+            nextToMoodButton.addEventListener('click', () => {
+                showPage('mood-window');
+                // Start the mood generation process
+                generateLeafMood();
+            });
+
+            nextToPersonalityButton.addEventListener('click', () => {
+                showPage('personality-window');
+                generatePersonalityProfile();
+            });
+            
+            nextToHistoryButton.addEventListener('click', () => {
+                showPage('history-window');
+                generateLeafHistory();
+            });
+
+            nextToFortuneButton.addEventListener('click', () => {
+                showPage('fortune-window');
+                generateFortune();
+            });
+            
+            nextToLeaderboardButton.addEventListener('click', () => {
+                showPage('leaderboard-window');
+                generateLeaderboard();
+            });
+
+            nextToThankYouButton.addEventListener('click', () => {
+                showPage('thank-you-window');
+            });
+            
+            startOverButton.addEventListener('click', () => {
+                showPage('start-window');
+            });
+
+            copyFortuneButton.addEventListener('click', () => {
+                try {
+                    const fortune = fortuneText.textContent;
+                    if (fortune) {
+                        // Use a fallback for navigator.clipboard.writeText
+                        const dummyElement = document.createElement('textarea');
+                        document.body.appendChild(dummyElement);
+                        dummyElement.value = fortune;
+                        dummyElement.select();
+                        document.execCommand('copy');
+                        document.body.removeChild(dummyElement);
+                        
+                        showToast('Copied to clipboard!');
+                    }
+                } catch (err) {
+                    console.error('Failed to copy text:', err);
+                }
+            });
+
+            scanButton.addEventListener('click', () => {
+                const imageSrc = imagePreview.src;
+                if (imageSrc && !imageSrc.includes('placehold.co')) {
+                    scanImage.src = imageSrc;
+                    scanModal.classList.add('active');
+
+                    // Set a timeout to simulate the scanning process
+                    setTimeout(() => {
+                        scanModal.classList.remove('active');
+                        performAnalysisAndDisplayResults();
+                    }, 3000); // 3 seconds for the scan animation
+                }
+            });
+
+            // Handle image upload
+            imageInput.addEventListener('change', (event) => {
+                const file = event.target.files[0];
+                if (file) {
+                    // Reset UI
+                    analysisResults.classList.add('hidden');
+                    errorBox.classList.add('hidden');
+                    nextToMoodButton.classList.add('hidden');
+                    badgeContainer.classList.add('hidden');
+                    badgesDiv.innerHTML = ''; // Clear old badges
+                    
+                    // Display the image preview
+                    const reader = new FileReader();
+                    reader.onload = e => {
+                        imagePreview.src = e.target.result;
+                        scanButton.classList.remove('hidden'); // Show the scan button after upload
+                    };
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Function to perform analysis and display results
+            async function performAnalysisAndDisplayResults() {
+                scanButton.classList.add('hidden');
+                loadingIndicator.classList.remove('hidden');
+
+                try {
+                    // Simulate API call to a back-end for leaf counting
+                    await new Promise(resolve => setTimeout(resolve, 2000)); // Simulate 2-second processing delay
+
+                    // Mock data for the results, including color classification
+                    const green = Math.floor(Math.random() * 50) + 10;
+                    const yellow = Math.floor(Math.random() * 30) + 5;
+                    const brown = Math.floor(Math.random() * 20) + 1;
+
+                    leafData = {
+                        greenCount: green,
+                        yellowCount: yellow,
+                        brownCount: brown,
+                        totalCount: green + yellow + brown
+                    };
+                    
+                    // Update the UI with the mock results
+                    totalLeavesSpan.textContent = leafData.totalCount;
+                    greenCountSpan.textContent = leafData.greenCount;
+                    yellowCountSpan.textContent = leafData.yellowCount;
+                    brownCountSpan.textContent = leafData.brownCount;
+                    
+                    // Award badges based on the results
+                    awardBadges(leafData);
+
+                    // Hide loading and show results
+                    loadingIndicator.classList.add('hidden');
+                    analysisResults.classList.remove('hidden');
+                    nextToMoodButton.classList.remove('hidden');
+
+                } catch (error) {
+                    // Display an error message if the API call fails
+                    loadingIndicator.classList.add('hidden');
+                    errorMessage.textContent = 'Failed to count leaves. Please try again.';
+                    errorBox.classList.remove('hidden');
+                    console.error('Error:', error);
+                }
+            }
+
+
+            // Function to award badges based on leaf counts
+            function awardBadges(data) {
+                const badges = [];
+                // Badge for a high number of green leaves
+                if (data.greenCount > 40) {
+                    badges.push({ name: 'Green Thumb', icon: '🌳', color: 'bg-green-600' });
+                }
+                // Badge for a significant number of yellow leaves
+                if (data.yellowCount > 20) {
+                    badges.push({ name: 'Autumn Enthusiast', icon: '🍂', color: 'bg-yellow-600' });
+                }
+                // Badge for a good balance of leaf colors
+                if (data.greenCount > data.yellowCount && data.yellowCount > data.brownCount && data.greenCount < 50) {
+                    badges.push({ name: 'Balanced Bloom', icon: '⚖️', color: 'bg-indigo-600' });
+                }
+                // Badge for an overall high leaf count
+                if (data.totalCount > 70) {
+                    badges.push({ name: 'Leaf Master', icon: '👑', color: 'bg-yellow-400 text-black' });
+                }
+
+                // If any badges were earned, display them
+                if (badges.length > 0) {
+                    badgesDiv.innerHTML = badges.map(badge => `
+                        <div class="flex items-center px-3 py-1 rounded-full ${badge.color}">
+                            <span class="text-2xl">${badge.icon}</span>
+                            <span class="ml-2 font-semibold text-sm">${badge.name}</span>
+                        </div>
+                    `).join('');
+                    badgeContainer.classList.remove('hidden');
+                }
+            }
+
+            // Function to generate the leaf mood
+            function generateLeafMood() {
+                moodLoading.classList.remove('hidden');
+                moodResult.classList.add('hidden');
+
+                setTimeout(() => {
+                    let mood = '';
+                    let moodColorClass = '';
+
+                    // Determine the mood based on color count
+                    if (leafData.greenCount > leafData.yellowCount && leafData.greenCount > leafData.brownCount) {
+                        mood = 'Happy! 😊';
+                        moodColorClass = 'text-green-400';
+                    } else if (leafData.yellowCount > leafData.greenCount && leafData.yellowCount > leafData.brownCount) {
+                        mood = 'Confused! 😕';
+                        moodColorClass = 'text-yellow-400';
+                    } else {
+                        mood = 'Sad! 😢';
+                        moodColorClass = 'text-red-400';
+                    }
+                    
+                    leafData.mood = mood; // Store mood in our global object
+                    leafMoodSpan.textContent = mood;
+                    leafMoodSpan.className = ''; // Reset classes
+                    leafMoodSpan.classList.add('text-5xl', 'sm:text-7xl', 'font-extrabold', moodColorClass);
+                    
+                    moodLoading.classList.add('hidden');
+                    moodResult.classList.remove('hidden');
+                }, 1500); // Simulate a short delay for dramatic effect
+            }
+            
+            // Function to generate the useless personality profile
+            function generatePersonalityProfile() {
+                personalityLoading.classList.remove('hidden');
+                personalityContent.classList.add('hidden');
+                
+                // Get the leaf data from our global object
+                const { greenCount, yellowCount, brownCount } = leafData;
+                
+                // Construct a mock personality profile based on the data
+                let personalityType = '';
+                let personalityDescription = '';
+                let dominantColorClass = '';
+
+                if (greenCount > yellowCount && greenCount > brownCount) {
+                    personalityType = 'The Extroverted Enthusiast';
+                    personalityDescription = `This tree is a vibrant, life-of-the-party type! With a dominant count of **green leaves (${greenCount})**, it thrives on sunlight and attention. This personality type is known for its boundless energy and a friendly, welcoming demeanor to all birds and squirrels.`;
+                    dominantColorClass = 'text-green-400';
+                } else if (yellowCount > greenCount && yellowCount > brownCount) {
+                    personalityType = 'The Reflective Artist';
+                    personalityDescription = `This tree has a deep, contemplative side. With a higher number of **yellow leaves (${yellowCount})**, it's constantly in a state of artistic change and self-discovery. This personality is often found pondering the big questions, like "Why is the sky so blue?" and "Is that a bird or a plane?"`;
+                    dominantColorClass = 'text-yellow-400';
+                } else {
+                    personalityType = 'The Grounded Elder';
+                    personalityDescription = `A wise and introspective personality. The higher count of **brown leaves (${brownCount})** suggests a deep connection to its roots and a patient, steady nature. This tree prefers quiet reflection over loud parties and offers timeless wisdom to anyone who listens.`;
+                    dominantColorClass = 'text-amber-400';
+                }
+
+                // Using a template literal with proper HTML for better readability
+                const profileHtml = `
+                    <h3 class="text-xl font-bold text-white mb-4">Personality Profile: Tree #${Math.floor(Math.random() * 1000)}</h3>
+                    <p><span class="font-bold text-green-400">Type:</span> ${personalityType}</p>
+                    <p class="mt-4"><span class="font-bold text-green-400">Core Traits:</span></p>
+                    <ul class="list-disc list-inside ml-4 mt-2 text-gray-300">
+                        <li>Likes: Photosynthesis, gentle breezes, and deep conversations with the soil.</li>
+                        <li>Dislikes: Chainsaws and overly aggressive squirrels.</li>
+                    </ul>
+                    <p class="mt-4"><span class="font-bold text-green-400">Analysis:</span></p>
+                    <p class="mt-2 text-gray-200">
+                        ${personalityDescription.replace(/\*\*green leaves \(\d+\)\*\*/, `<span class="${dominantColorClass}">green leaves (${greenCount})</span>`)}
+                        ${personalityDescription.replace(/\*\*yellow leaves \(\d+\)\*\*/, `<span class="${dominantColorClass}">yellow leaves (${yellowCount})</span>`)}
+                        ${personalityDescription.replace(/\*\*brown leaves \(\d+\)\*\*/, `<span class="${dominantColorClass}">brown leaves (${brownCount})</span>`)}
+                    </p>
+                    <p class="mt-4 italic text-sm text-gray-400">*Disclaimer: This profile has been algorithmically generated and is 100% useless.*</p>
+                `;
+
+                setTimeout(() => {
+                    personalityText.innerHTML = profileHtml;
+                    personalityLoading.classList.add('hidden');
+                    personalityContent.classList.remove('hidden');
+                }, 2500); // Simulate a longer delay for the "report generation" effect
+            }
+
+            // Function to generate the leaf history timeline
+            function generateLeafHistory() {
+                historyLoading.classList.remove('hidden');
+                historyContent.classList.add('hidden');
+
+                const { greenCount, yellowCount, brownCount } = leafData;
+                const timeline = [];
+
+                // Determine the three "eras" based on leaf count
+                const eras = [
+                    { count: greenCount, color: 'Green', title: 'Era of Verdant Prosperity', description: 'A period of intense growth and vitality. The plant flourished, basking in the sun and absorbing every drop of life.' },
+                    { count: yellowCount, color: 'Yellow', title: 'Period of Artistic Reflection', description: 'A time of great change and introspection. The plant began to shed its old self, embracing new colors and preparing for what was to come.' },
+                    { count: brownCount, color: 'Brown', title: 'Age of Quiet Contemplation', description: 'A long period of profound wisdom and tranquility. The plant focused inward, becoming one with its roots and the timeless flow of nature.' }
+                ];
+
+                // Sort eras from highest to lowest count to create a chronological narrative
+                eras.sort((a, b) => b.count - a.count);
+
+                // Build the timeline HTML
+                const timelineHtml = eras.map(era => `
+                    <div class="timeline-item">
+                        <p class="timeline-title">${era.title}</p>
+                        <p class="timeline-description">${era.description}</p>
+                        <p class="text-sm text-gray-500 mt-1">Leaves: ${era.count} ${era.color}</p>
+                    </div>
+                `).join('');
+
+                setTimeout(() => {
+                    timelineDiv.innerHTML = timelineHtml;
+                    historyLoading.classList.add('hidden');
+                    historyContent.classList.remove('hidden');
+                }, 2000); // Simulate loading time
+            }
+
+            // Function to generate the useless fortune
+            function generateFortune() {
+                fortuneLoading.classList.remove('hidden');
+                fortuneContent.classList.add('hidden');
+                
+                // Fortunes based on leaf color counts
+                let fortunes = [];
+                if (leafData.greenCount > 30) {
+                    fortunes.push("A sudden breeze will bring you a moment of clarity. Or a leaf.");
+                    fortunes.push("You are a vibrant spirit, destined for a sunny afternoon.");
+                }
+                if (leafData.yellowCount > 15) {
+                    fortunes.push("A change in your path is on the horizon. It will probably lead you to the fridge.");
+                    fortunes.push("The universe whispers of new opportunities, or maybe it's just the wind.");
+                }
+                if (leafData.brownCount > 5) {
+                    fortunes.push("Beware of a small, unexpected drop. It might be a leaf, or it might be a key.");
+                    fortunes.push("Your roots are deep, but your destiny is as light as a falling leaf.");
+                }
+
+                // If no specific conditions are met, use a generic fortune
+                if (fortunes.length === 0) {
+                    fortunes.push("The leaves are ambivalent. You'll probably have a day just like any other.");
+                    fortunes.push("Your future is unwritten. Much like this fortune.");
+                }
+                
+                // Select a random fortune from the list
+                const randomFortune = fortunes[Math.floor(Math.random() * fortunes.length)];
+
+                setTimeout(() => {
+                    fortuneText.textContent = randomFortune;
+                    fortuneLoading.classList.add('hidden');
+                    fortuneContent.classList.remove('hidden');
+                }, 2000); // Simulate a short delay
+            }
+            
+            // Function to generate the leaderboard
+            function generateLeaderboard() {
+                const myScore = leafData.totalCount;
+                
+                // Static leaderboard data to simulate a persistent list
+                const leaderboardData = [
+                    { name: 'MapleMaster', score: 98 },
+                    { name: 'LeafyLou', score: 85 },
+                    { name: 'CedarSensei', score: 72 },
+                    { name: 'ForestFriend', score: 65 },
+                ];
+                
+                // Add the user's score to the list and sort
+                leaderboardData.push({ name: 'You', score: myScore });
+                leaderboardData.sort((a, b) => b.score - a.score);
+                
+                // Find the user's rank
+                const userIndex = leaderboardData.findIndex(player => player.name === 'You');
+                const userRankNumber = userIndex + 1;
+
+                // Render the leaderboard
+                leaderboardList.innerHTML = leaderboardData.map((player, index) => `
+                    <div class="flex items-center justify-between p-4 rounded-lg transition-all duration-300 ${player.name === 'You' ? 'bg-green-800 text-white font-bold transform scale-105 shadow-xl ring-4 ring-green-500 ring-opacity-50' : 'bg-gray-700 text-gray-300'}">
+                        <span class="flex items-center">
+                            ${player.name === 'You' ? '<span class="text-2xl mr-2">🌟</span>' : ''}
+                            #${index + 1} - ${player.name}
+                        </span>
+                        <span>${player.score} leaves</span>
+                    </div>
+                `).join('');
+                
+                // Update the user's rank display
+                userRank.textContent = `You are ranked #${userRankNumber} with ${myScore} leaves!`;
+            }
+        });
+    </script>
+</body>
+</html>
